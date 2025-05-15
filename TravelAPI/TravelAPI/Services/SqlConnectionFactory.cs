@@ -3,18 +3,17 @@ using System.Data.SqlClient;
 
 namespace TravelAPI.Services;
 
-//utworzylam pomocnicza klase do laczenia sie z baza
 public class SqlConnectionFactory
 {
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration _config;
 
-    public SqlConnectionFactory(IConfiguration configuration)
+    public SqlConnectionFactory(IConfiguration config)
     {
-        _configuration = configuration;
+        _config = config;
     }
 
     public SqlConnection Create()
     {
-        return new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+        return new SqlConnection(_config.GetConnectionString("DefaultConnection"));
     }
 }

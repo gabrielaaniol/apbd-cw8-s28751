@@ -37,10 +37,6 @@ public class ClientsController : ControllerBase
         return CreatedAtAction(nameof(GetClientTrips), new { id }, new { IdClient = id });
     }
 
-    //(uzywane do wyswietlania historii)
-    //potrzeba sprawdzic czy istnieje klient o podanym id
-    //jesli istnieje pobieram wszystkie wycieczki i lacze z danymi z Trip
-    //tworze liste ClientTripDto
     [HttpGet("{id}/trips")]
     public async Task<IActionResult> GetClientTrips(int id)
     {
@@ -50,8 +46,8 @@ public class ClientsController : ControllerBase
         var check = connection.CreateCommand();
         check.CommandText = "SELECT COUNT(1) FROM Client WHERE IdClient = @id";
         check.Parameters.AddWithValue("@id", id);
-
         var exists = (int)await check.ExecuteScalarAsync();
+
         if (exists == 0)
             return NotFound("Client not found");
 
@@ -84,34 +80,30 @@ public class ClientsController : ControllerBase
         return Ok(result);
     }
 
-    //(uzywane do zapisywania klienta na wycieczke)
-    //sprawdzam czy: istnieje klient, wycieczka + czy klient nie jest juz zapisany
-    //czy liczba zapisanych uzytkownikow nie przekracza limitu
     [HttpPut("{id}/trips/{tripId}")]
     public async Task<IActionResult> RegisterClientToTrip(int id, int tripId)
     {
         using var connection = _factory.Create();
         await connection.OpenAsync();
 
-        var cmd = connection.CreateCommand();
-        cmd.CommandText = @"
+        var check = connection.CreateCommand();
+        check.CommandText = @"
             SELECT 
                 (SELECT COUNT(*) FROM Client WHERE IdClient = @id),
                 (SELECT COUNT(*) FROM Trip WHERE IdTrip = @tripId),
                 (SELECT COUNT(*) FROM Client_Trip WHERE IdClient = @id AND IdTrip = @tripId),
                 (SELECT COUNT(*) FROM Client_Trip WHERE IdTrip = @tripId),
                 (SELECT MaxPeople FROM Trip WHERE IdTrip = @tripId)";
+        check.Parameters.AddWithValue("@id", id);
+        check.Parameters.AddWithValue("@tripId", tripId);
 
-        cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@tripId", tripId);
-
-        using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = await check.ExecuteReaderAsync();
         await reader.ReadAsync();
 
         if (reader.GetInt32(0) == 0) return NotFound("Client not found");
         if (reader.GetInt32(1) == 0) return NotFound("Trip not found");
-        if (reader.GetInt32(2) > 0) return Conflict("Already registered");
-        if (reader.GetInt32(3) >= reader.GetInt32(4)) return Conflict("Trip full");
+        if (reader.GetInt32(2) > 0) return Conflict("Client already registered");
+        if (reader.GetInt32(3) >= reader.GetInt32(4)) return Conflict("Trip is full");
 
         await reader.CloseAsync();
 
@@ -123,12 +115,9 @@ public class ClientsController : ControllerBase
         insert.Parameters.AddWithValue("@tripId", tripId);
 
         await insert.ExecuteNonQueryAsync();
-        return Ok("Registered");
+        return Ok("Client registered");
     }
 
-    //(do wypisania np klienta z wycieczki)
-    //sprawdzam czy klient jest zapisany na dana wycieczke
-    //jesli tak to usuwam wpis z ClientTrip
     [HttpDelete("{id}/trips/{tripId}")]
     public async Task<IActionResult> UnregisterClientFromTrip(int id, int tripId)
     {

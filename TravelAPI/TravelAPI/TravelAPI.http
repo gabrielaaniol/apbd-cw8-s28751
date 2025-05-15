@@ -1,6 +1,27 @@
-@TravelAPI_HostAddress = http://localhost:5113
+@host = http://localhost:5113
 
-GET {{TravelAPI_HostAddress}}/weatherforecast/
+### GET all trips
+GET {{host}}/api/trips
 Accept: application/json
 
-###
+### GET trips for a client
+GET {{host}}/api/clients/1/trips
+Accept: application/json
+
+### POST create client
+POST {{host}}/api/clients
+Content-Type: application/json
+
+{
+  "firstName": "Bartosz",
+  "lastName": "Aniol",
+  "email": "bartaniol@example.com",
+  "telephone": "123456789",
+  "pesel": "12345678901"
+}
+
+### PUT register client to trip
+PUT {{host}}/api/clients/1/trips/1
+
+### DELETE unregister client from trip
+DELETE {{host}}/api/clients/1/trips/1
